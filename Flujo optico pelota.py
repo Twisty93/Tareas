@@ -1,6 +1,5 @@
 import numpy as np
 import cv2 as cv
-
 # Iniciar la captura de video desde la cámara
 cap = cv.VideoCapture(0)
 
@@ -13,7 +12,7 @@ ret, first_frame = cap.read()
 prev_gray = cv.cvtColor(first_frame, cv.COLOR_BGR2GRAY)
 
 # Posición inicial de la pelotita (un único punto en el centro de la imagen)
-ball_pos = np.array([[500, 500]], dtype=np.float32)
+ball_pos = np.array([[200, 200]], dtype=np.float32)
 ball_pos = ball_pos[:, np.newaxis, :]
 
 while True:
@@ -44,6 +43,7 @@ while True:
     # Actualizar el frame anterior para el siguiente cálculo
     prev_gray = gray_frame.copy()
 
+    
     # Presionar 'Esc' para salir
     if cv.waitKey(30) & 0xFF == 27:
         break
