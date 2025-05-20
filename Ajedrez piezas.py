@@ -18,7 +18,7 @@ def init():
     glMatrixMode(GL_MODELVIEW)
 
 def draw_chessboard():
-    """Dibuja un tablero de ajedrez de 8x8"""
+    
     size = 1.0
     glPushMatrix()
     glTranslatef(-4, 0, -4)  # Centrar el tablero
@@ -37,7 +37,7 @@ def draw_chessboard():
     glPopMatrix()
 
 def draw_pawn():
-    """Peón estilo minimalista más alto"""
+
     quad = gluNewQuadric()
     glPushMatrix()
 
@@ -57,7 +57,7 @@ def draw_pawn():
     glPopMatrix()
 
 def draw_king():
-    """Rey estilo minimalista con dos esferas como cuerpo y corona"""
+    
     quad = gluNewQuadric()
     glPushMatrix()
 
