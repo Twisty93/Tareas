@@ -11,21 +11,20 @@ def reconocer_letra(hand_landmarks, frame):
     h, w, _ = frame.shape
     dedos = [(int(hand_landmarks.landmark[i].x * w), int(hand_landmarks.landmark[i].y * h)) for i in range(21)]
 
-    # Asignar nombres
     pulgar = dedos[4]
     indice = dedos[8]
     medio = dedos[12]
     anular = dedos[16]
     meñique = dedos[20]
 
-    def dedo_estirado(punta, base):
-        return punta[1] < base[1]
-
     base_indice = dedos[5]
     base_medio = dedos[9]
     base_anular = dedos[13]
     base_meñique = dedos[17]
     base_pulgar = dedos[2]
+
+    def dedo_estirado(punta, base):
+        return punta[1] < base[1]
 
     indice_ext = dedo_estirado(indice, base_indice)
     medio_ext = dedo_estirado(medio, base_medio)
@@ -35,14 +34,29 @@ def reconocer_letra(hand_landmarks, frame):
 
     dist_pulgar_indice = np.linalg.norm(np.array(pulgar) - np.array(indice))
 
+    # Letra I: solo meñique estirado, resto pegados a la palma
     if meñique_ext and not indice_ext and not medio_ext and not anular_ext:
         return "I"
-    elif dist_pulgar_indice < 40 and not medio_ext and not anular_ext:
+
+    # Letra P: todos pegados a la palma (no estirados) excepto pulgar, que puede estar estirado o no,
+    # y pulgar e índice cerca
+    if (indice_ext and not medio_ext and not anular_ext and not meñique_ext) and dist_pulgar_indice < 100:
         return "P"
-    elif indice_ext and not medio_ext and not anular_ext and not meñique_ext:
+
+    # Letra Z: índice estirado y recto, resto pegados a la palma
+    indice_punta = np.array(dedos[8])
+    indice_medio = np.array(dedos[7])
+    indice_base = np.array(dedos[5])
+
+    desv_punta_medio = abs(indice_punta[0] - indice_medio[0])
+    desv_medio_base = abs(indice_medio[0] - indice_base[0])
+    umbral_recto = 15
+
+    if indice_ext and not medio_ext and not anular_ext and not meñique_ext and desv_punta_medio < umbral_recto and desv_medio_base < umbral_recto:
         return "Z"
 
     return "Desconocido"
+
 
 
 def detectar_numero_50(manos, frame):
@@ -102,18 +116,41 @@ def detectar_numero_15(manos, frame):
     if len(manos) != 2:
         return False
 
-    def es_palma_abierta(landmarks):
+    def dedos_estirados(landmarks):
         dedos = [(int(p.x * frame.shape[1]), int(p.y * frame.shape[0])) for p in landmarks.landmark]
         def estirado(punta, base): return punta[1] < base[1]
         return all([
-            estirado(dedos[8], dedos[5]),
-            estirado(dedos[12], dedos[9]),
-            estirado(dedos[16], dedos[13]),
-            estirado(dedos[20], dedos[17]),
-            estirado(dedos[4], dedos[2])
+            estirado(dedos[8], dedos[5]),    # Índice
+            estirado(dedos[12], dedos[9]),   # Medio
+            estirado(dedos[16], dedos[13]),  # Anular
+            estirado(dedos[20], dedos[17]),  # Meñique
+            estirado(dedos[4], dedos[2])     # Pulgar
         ])
 
-    return es_palma_abierta(manos[0]) and es_palma_abierta(manos[1])
+    def dedos_flexionados(landmarks):
+        dedos = [(int(p.x * frame.shape[1]), int(p.y * frame.shape[0])) for p in landmarks.landmark]
+        def doblado(punta, base): return punta[1] > base[1]
+        return all([
+            doblado(dedos[8], dedos[5]),
+            doblado(dedos[12], dedos[9]),
+            doblado(dedos[16], dedos[13]),
+            doblado(dedos[20], dedos[17]),
+            doblado(dedos[4], dedos[2])
+        ])
+
+    mano1 = manos[0]
+    mano2 = manos[1]
+
+    # Caso 1: ambas abiertas acostadas
+    ambas_abiertas = dedos_estirados(mano1) and dedos_estirados(mano2)
+
+    # Caso 2: una abierta, otra en puño (acostadas)
+    una_abierta_una_cerrada = (
+        (dedos_estirados(mano1) and dedos_flexionados(mano2)) or
+        (dedos_estirados(mano2) and dedos_flexionados(mano1))
+    )
+
+    return ambas_abiertas or una_abierta_una_cerrada
 
 
 def mesota(manos, frame):
